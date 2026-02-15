@@ -1,0 +1,1 @@
+"""Package: dbt-project-template"""
