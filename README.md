@@ -45,3 +45,8 @@ dbt-project-template/
 ## License
 
 MIT License — free to use, modify, and distribute.
+
+## 🚀 New Features (2026-03-02)
+- Add cross-project source freshness checks and dynamic macro library
+- Enhanced error handling and edge case coverage
+- Comprehensive unit tests and integration examples
