@@ -1,0 +1,12 @@
+model_name,layer,materialization,has_tests,has_description,depends_on,row_count_approx
+stg_projects,staging,view,True,True,source_kobo,150
+stg_activities,staging,view,True,True,source_kobo,4500
+stg_carbon_events,staging,view,True,False,source_mrv,2200
+stg_sites,staging,view,False,True,source_gis,320
+stg_species,staging,view,True,True,source_biodiversity,1800
+int_carbon_metrics,intermediate,table,True,True,stg_carbon_events,1200
+int_project_summary,intermediate,table,True,True,stg_projects,150
+int_area_calculation,intermediate,table,False,False,stg_sites,300
+mart_nbs_kpis,mart,table,True,True,int_carbon_metrics,150
+mart_project_report,mart,table,True,True,int_project_summary,150
+mart_biodiversity_score,mart,table,False,True,stg_species,1800

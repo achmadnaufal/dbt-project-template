@@ -1,52 +1,39 @@
-# Dbt Project Template
+# dbt Project Template
 
-dbt project template with best practices, documentation, and testing patterns
+dbt project scaffolding and quality analysis for NbS and pharma BI data models.
 
 ## Features
-- Data ingestion from CSV/Excel input files
-- Automated analysis and KPI calculation
-- Summary statistics and trend reporting
-- Sample data generator for testing and development
-
-## Installation
-
-```bash
-pip install -r requirements.txt
-```
+- **Model quality report**: test coverage %, documentation coverage %, naming violations
+- **YAML stub generator**: auto-generate model documentation with not_null tests
+- **Layer analysis**: model distribution across staging/intermediate/mart
+- **Naming convention**: snake_case validation for all model names
+- **Sample inventory**: NbS analytics dbt project with 11 models
 
 ## Quick Start
 
 ```python
 from src.main import DBTProjectTemplate
 
-analyzer = DBTProjectTemplate()
-df = analyzer.load_data("data/sample.csv")
-result = analyzer.analyze(df)
-print(result)
+dbt = DBTProjectTemplate(config={"project_name": "pur_analytics"})
+df = dbt.load_data("sample_data/models_inventory.csv")
+
+report = dbt.model_quality_report(df)
+print(f"Test Coverage:  {report['test_coverage_pct']:.1f}%")
+print(f"Doc Coverage:   {report['doc_coverage_pct']:.1f}%")
+print(f"Naming Issues:  {report['naming_violations']}")
+print(f"Untested:       {report['untested_models']}")
+print(f"By Layer:       {report['models_by_layer']}")
+
+# Generate YAML stub
+yaml = dbt.generate_model_yaml_stub(
+    "stg_carbon_events",
+    ["event_id", "project_id", "period", "tco2_issued"],
+    layer="staging"
+)
+print(yaml)
 ```
 
-## Data Format
-
-Expected CSV columns: `model_name, schema, materialization, tests, docs_generated, rows, run_status`
-
-## Project Structure
-
+## Running Tests
+```bash
+pytest tests/ -v
 ```
-dbt-project-template/
-├── src/
-│   ├── main.py          # Core analysis logic
-│   └── data_generator.py # Sample data generator
-├── data/                # Data directory (gitignored for real data)
-├── examples/            # Usage examples
-├── requirements.txt
-└── README.md
-```
-
-## License
-
-MIT License — free to use, modify, and distribute.
-
-## 🚀 New Features (2026-03-02)
-- Add cross-project source freshness checks and dynamic macro library
-- Enhanced error handling and edge case coverage
-- Comprehensive unit tests and integration examples
