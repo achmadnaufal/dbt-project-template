@@ -227,3 +227,117 @@ class DBTProjectTemplate:
             else:
                 rows.append({"metric": k, "value": v})
         return pd.DataFrame(rows)
+
+
+    def generate_model_stub(
+        self,
+        model_name: str,
+        layer: str = "intermediate",
+        source_models: Optional[List[str]] = None,
+        description: str = "",
+        materialization: str = "table",
+    ) -> str:
+        """
+        Generate a dbt model SQL stub with config block and documentation header.
+
+        Args:
+            model_name: Name of the dbt model (snake_case expected).
+            layer: dbt layer: 'staging', 'intermediate', or 'mart'.
+            source_models: List of upstream model names to include as CTEs.
+            description: Human-readable description for documentation.
+            materialization: dbt materialization: 'table', 'view', or 'incremental'.
+
+        Returns:
+            String containing complete dbt model SQL stub.
+
+        Raises:
+            ValueError: If layer is not one of the accepted values.
+        """
+        valid_layers = {"staging", "intermediate", "mart"}
+        if layer not in valid_layers:
+            raise ValueError(f"layer must be one of {valid_layers}, got '{layer}'")
+
+        valid_mats = {"table", "view", "incremental"}
+        if materialization not in valid_mats:
+            raise ValueError(f"materialization must be one of {valid_mats}, got '{materialization}'")
+
+        source_models = source_models or []
+        cte_block = ""
+        if source_models:
+            cte_parts = [
+                f"    {m} as (\n        select * from {{{{ ref('{m}') }}}}\n    )"
+                for m in source_models
+            ]
+            cte_block = "with\n" + ",\n\n".join(cte_parts) + "\n\n"
+
+        incremental_clause = ""
+        if materialization == "incremental":
+            incremental_clause = (
+                "\n    {% if is_incremental() %}\n"
+                "    where updated_at > (select max(updated_at) from {{ this }})\n"
+                "    {% endif %}\n"
+            )
+
+        stub = (
+            f"{{{{ config(\n"
+            f"    materialized='{materialization}',\n"
+            f"    schema='{layer}',\n"
+            f"    tags=['{layer}']\n"
+            f") }}}}\n\n"
+            f"/*\n"
+            f"  Model: {model_name}\n"
+            f"  Layer: {layer}\n"
+            f"  Description: {description or 'TODO: add description'}\n"
+            f"  Owner: TODO\n"
+            f"  Updated: 2026-03-05\n"
+            f"*/\n\n"
+            f"{cte_block}"
+            f"select\n"
+            f"    -- TODO: add column definitions\n"
+            f"    *\n"
+            f"from {source_models[0] if source_models else 'source_table'}\n"
+            f"{incremental_clause}"
+        )
+        return stub
+
+    def test_coverage_report(self, df: pd.DataFrame) -> Dict[str, Any]:
+        """
+        Generate a detailed test coverage report for a dbt model inventory.
+
+        Args:
+            df: Model inventory DataFrame with model_name, has_tests,
+                has_description, layer columns.
+
+        Returns:
+            Dict with overall coverage %, breakdown by layer, and untested models list.
+        """
+        df = self.preprocess(df)
+        if "has_tests" not in df.columns or "has_description" not in df.columns:
+            raise ValueError("Columns 'has_tests' and 'has_description' required")
+
+        total = len(df)
+        tested = int(df["has_tests"].astype(bool).sum())
+        documented = int(df["has_description"].astype(bool).sum())
+
+        layer_breakdown = {}
+        if "layer" in df.columns:
+            for layer, grp in df.groupby("layer"):
+                layer_breakdown[layer] = {
+                    "model_count": len(grp),
+                    "tested_pct": round(grp["has_tests"].astype(bool).mean() * 100, 1),
+                    "documented_pct": round(grp["has_description"].astype(bool).mean() * 100, 1),
+                }
+
+        untested = []
+        if "model_name" in df.columns:
+            untested = df[~df["has_tests"].astype(bool)]["model_name"].tolist()
+
+        return {
+            "total_models": total,
+            "tested_models": tested,
+            "test_coverage_pct": round(tested / total * 100, 1) if total > 0 else 0,
+            "documented_models": documented,
+            "doc_coverage_pct": round(documented / total * 100, 1) if total > 0 else 0,
+            "layer_breakdown": layer_breakdown,
+            "untested_models": untested,
+        }

@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-03-05
+### Added
+- `generate_model_stub()`: generates dbt SQL stub with config block, CTEs, and optional incremental clause
+- `test_coverage_report()`: detailed test and documentation coverage report with per-layer breakdown
+- 12 new unit tests covering model stub generation and coverage reporting
+### Improved
+- README updated with generate_model_stub output example and coverage report walkthrough
+
 ## [1.2.0] - 2026-03-04
 ### Added
 - `model_quality_report()`: test coverage %, doc coverage %, naming violations, layer distribution

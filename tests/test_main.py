@@ -91,3 +91,60 @@ class TestGenerateModelYamlStub:
     def test_mart_materialized_as_table(self, dbt):
         yaml = dbt.generate_model_yaml_stub("mart_test", ["id"], layer="mart")
         assert "table" in yaml
+
+
+class TestGenerateModelStub:
+    def test_returns_string(self, dbt):
+        result = dbt.generate_model_stub("my_model")
+        assert isinstance(result, str)
+
+    def test_contains_model_name(self, dbt):
+        result = dbt.generate_model_stub("stg_orders")
+        assert "stg_orders" in result
+
+    def test_contains_config_block(self, dbt):
+        result = dbt.generate_model_stub("int_revenue", materialization="table")
+        assert "config(" in result
+        assert "materialized='table'" in result
+
+    def test_contains_cte_for_sources(self, dbt):
+        result = dbt.generate_model_stub("mart_kpis", source_models=["int_carbon", "int_area"])
+        assert "ref('int_carbon')" in result
+        assert "ref('int_area')" in result
+
+    def test_incremental_clause(self, dbt):
+        result = dbt.generate_model_stub("fact_daily", materialization="incremental")
+        assert "is_incremental" in result
+
+    def test_invalid_layer_raises(self, dbt):
+        with pytest.raises(ValueError, match="layer must be"):
+            dbt.generate_model_stub("bad_model", layer="invalid")
+
+    def test_invalid_materialization_raises(self, dbt):
+        with pytest.raises(ValueError, match="materialization must be"):
+            dbt.generate_model_stub("bad_model", materialization="stream")
+
+
+class TestTestCoverageReport:
+    def test_returns_dict(self, dbt, model_df):
+        result = dbt.test_coverage_report(model_df)
+        assert isinstance(result, dict)
+
+    def test_coverage_pct_in_range(self, dbt, model_df):
+        result = dbt.test_coverage_report(model_df)
+        assert 0 <= result["test_coverage_pct"] <= 100
+
+    def test_untested_models_list(self, dbt, model_df):
+        result = dbt.test_coverage_report(model_df)
+        assert isinstance(result["untested_models"], list)
+        assert "stg_activities" in result["untested_models"]
+
+    def test_layer_breakdown_present(self, dbt, model_df):
+        result = dbt.test_coverage_report(model_df)
+        assert "layer_breakdown" in result
+        assert "staging" in result["layer_breakdown"]
+
+    def test_missing_columns_raises(self, dbt):
+        df = pd.DataFrame({"model_name": ["m1", "m2"]})
+        with pytest.raises(ValueError, match="has_tests"):
+            dbt.test_coverage_report(df)

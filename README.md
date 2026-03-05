@@ -37,3 +37,29 @@ print(yaml)
 ```bash
 pytest tests/ -v
 ```
+
+---
+
+## [v1.3.0] Model Stub Generator & Test Coverage Report
+
+```python
+# Generate a dbt SQL model stub
+stub = dbt.generate_model_stub(
+    "mart_nbs_kpis",
+    layer="mart",
+    source_models=["int_carbon_metrics", "int_area_progress"],
+    description="NbS project KPI mart for dashboarding",
+    materialization="table",
+)
+print(stub)
+# {{ config(materialized='table', schema='mart', tags=['mart']) }}
+# /* Model: mart_nbs_kpis | Layer: mart | ... */
+# with
+#     int_carbon_metrics as (select * from {{ ref('int_carbon_metrics') }}),
+#     int_area_progress as (select * from {{ ref('int_area_progress') }})
+# select * from int_carbon_metrics
+
+# Test coverage by layer
+report = dbt.test_coverage_report(model_df)
+# {"test_coverage_pct": 66.7, "layer_breakdown": {"staging": {"tested_pct": 75.0}}, ...}
+```
